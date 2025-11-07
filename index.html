@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SnapHabit Space</title>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Add custom animations to Tailwind
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              'poppins': ['Poppins', 'sans-serif'],
+            },
+            backgroundImage: {
+              'grid-pattern': 'linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)',
+            },
+            keyframes: {
+              'record-pulse': {
+                '0%, 100%': { opacity: '1', boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.7)' },
+                '70%': { opacity: '1', boxShadow: '0 0 0 10px rgba(34, 197, 94, 0)' },
+              },
+              'drift-slow': {
+                '0%': { transform: 'translateX(-100%)', opacity: '0.6' },
+                '50%': { opacity: '0.9' },
+                '100%': { transform: 'translateX(200%)', opacity: '0.6' },
+              },
+              'firefly-pulse': {
+                '0%, 100%': { opacity: '0.2', transform: 'scale(0.8)' },
+                '50%': { opacity: '1', transform: 'scale(1.2)' },
+              },
+              'sparkle-pulse': {
+                '0%, 100%': { opacity: '0.5', transform: 'scale(0.8)' },
+                '50%': { opacity: '1', transform: 'scale(1.2)' },
+              },
+              'spirit-hover': {
+                '0%, 100%': { transform: 'translate(-50%, -50%) translateY(0)', opacity: '0.9' },
+                '50%': { transform: 'translate(-50%, -50%) translateY(-8px)', opacity: '1' },
+              },
+              'meteor-fall': {
+                '0%': { transform: 'translateY(-100px) translateX(0px) rotate(15deg)', opacity: '1' },
+                '100%': { transform: 'translateY(100vh) translateX(100px) rotate(15deg)', opacity: '1' },
+              },
+              'solar-wind-flow': {
+                '0%': { transform: 'translateX(-100%)', opacity: '0' },
+                '10%, 70%': { opacity: '0.2' },
+                '100%': { transform: 'translateX(150%)', opacity: '0' },
+              },
+              'modal-pop': {
+                '0%': { opacity: '0', transform: 'scale(0.95)' },
+                '100%': { opacity: '1', transform: 'scale(1)' },
+              },
+              'supernova-pulse': {
+                '0%, 100%': { transform: 'scale(1)', opacity: '0.7', filter: 'blur(20px)' },
+                '50%': { transform: 'scale(1.5)', opacity: '1', filter: 'blur(30px)' },
+              }
+            },
+            animation: {
+              'record-pulse': 'record-pulse 2s infinite', 
+              'drift-slow-1': 'drift-slow 60s linear infinite',
+              'drift-slow-2': 'drift-slow 90s linear infinite 10s',
+              'firefly-pulse': 'firefly-pulse 3s ease-in-out infinite',
+              'sparkle-pulse': 'sparkle-pulse 2s ease-in-out infinite',
+              'spirit-hover': 'spirit-hover 4s ease-in-out infinite',
+              'meteor-fall': 'meteor-fall 1s linear infinite', // --- CHANGE ---
+              'solar-wind-flow': 'solar-wind-flow 6s ease-in-out infinite', // --- CHANGE ---
+              'modal-pop': 'modal-pop 0.3s ease-out', 
+              'supernova-pulse': 'supernova-pulse 2.5s ease-in-out infinite', // --- NEW ---
+            },
+          },
+        },
+      };
+    </script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+  </head>
+  <body class="bg-gray-100 font-poppins overflow-x-hidden">
+    <div id="root"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+      const { useState, useEffect, useCallback, useReducer } = React;
+
+      const PLANT_SPECIES = {
+        health: { 
+          emoji: ['🧊', '☄️', '🪐', '🛰️'], 
+          levelRequired: 1 
+        },
+        mindfulness: { 
+          emoji: ['✨', '🌀', '🌌', '🔮'], 
+          levelRequired: 1 
+        },
+        productivity: { 
+          emoji: ['🔩', '🚀', '📊', '📡'], 
+          levelRequired: 1 
+        },
+        creativity: { 
+          emoji: ['🌈', '🌟', '🌠', '🎆'], 
+          levelRequired: 1 
+        },
+        cosmos: { 
+          emoji: ['✨', '🔭', '🪐', '🌌'], 
+          levelRequired: 3 
+        },
+      };
+      const MAX_GROWTH = 3; 
+
+      const MOOD_COLORS = {
+        default: 'shadow-gray-400/50',
+        happy: 'shadow-yellow-400/50',
+        calm: 'shadow-blue-400/50',
+        energized: 'shadow-orange-400/50',
+        proud: 'shadow-purple-400/50',
+        tired: 'shadow-gray-600/50',
+      };
+
+      const MOOD_EMOJI = {
+        happy: '😊', 
+        calm: '😌', 
+        energized: '⚡️', 
+        proud: '😎', 
+        tired: '😴',
+        default: '😐'
+      };
+
+      const HABIT_TYPE_COLORS = {
+        health: 'bg-blue-500',
+        mindfulness: 'bg-purple-500',
+        productivity: 'bg-gray-600',
+        creativity: 'bg-pink-500',
+        cosmos: 'bg-indigo-700', // --- CHANGE ---
+        default: 'bg-gray-400',
+      };
+      
+      const STORE_ITEMS = [
+        { id: 'item1', name: 'Asteroid', cost: 20, levelRequired: 1, decorClass: 'w-10 h-10', 
+          svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M70,10 C90,20 90,40 75,50 C60,60 40,70 30,60 C20,50 10,30 25,20 C40,10 50,0 70,10 Z" fill="#9E9E9E"/><circle cx="35" cy="30" r="5" fill="#757575"/><circle cx="60" cy="40" r="8" fill="#757575"/><circle cx="50" cy="25" r="3" fill="#757575"/></svg>`
+        },
+        { id: 'item2', name: 'Moon Rock', cost: 10, levelRequired: 1, decorClass: 'w-8 h-8', 
+          svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M80,90 C90,90 95,80 90,70 C85,60 70,65 60,70 C50,75 30,85 30,90 S70,90 80,90 Z" fill="#E0E0E0"/><circle cx="40" cy="80" r="5" fill="#BDBDBD"/><circle cx="65" cy="75" r="8" fill="#BDBDBD"/></svg>`
+        },
+        { id: 'item3', name: 'Star Cluster', cost: 30, levelRequired: 1, decorClass: 'w-12 h-12',
+          svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50,10 L60,35 L85,40 L65,60 L70,85 L50,70 L30,85 L35,60 L15,40 L40,35 Z" fill="#FFF176"/><path d="M20,60 L25,75 L40,78 L30,88 L33,98 L20,90 L7,98 L10,88 L0,78 L15,75 Z" fill="#FFF176" transform="scale(0.5) translate(130, 20)"/><path d="M70,70 L75,85 L90,88 L80,98 L83,108 L70,100 L57,108 L60,98 L50,88 L65,85 Z" fill="#FFF176" transform="scale(0.4) translate(20, 100)"/></svg>`
+        },
+        { id: 'item5', name: 'Space Dust', cost: 5, levelRequired: 1, decorClass: 'w-10 h-6',
+          svg: `<svg viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="30" r="3" fill="#FFF" opacity="0.7"/><circle cx="45" cy="35" r="2" fill="#FFF" opacity="0.7"/><circle cx="75" cy="30" r="3" fill="#FFF" opacity="0.7"/><circle cx="30" cy="10" r="2" fill="#FFF" opacity="0.7"/><circle cx="60" cy="20" r="3" fill="#FFF" opacity="0.7"/></svg>`
+        },
+        { id: 'item4', name: 'Nebula Cloud', cost: 50, levelRequired: 2, decorClass: 'w-12 h-12',
+          svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50,20 C30,20 10,30 10,50 C10,70 30,80 50,80 C70,80 90,70 90,50 C90,30 70,20 50,20 Z" fill="url(#nebula)" opacity="0.8"/><defs><radialGradient id="nebula"><stop offset="0%" stop-color="#E040FB"/><stop offset="50%" stop-color="#7C4DFF"/><stop offset="100%" stop-color="#448AFF" stop-opacity="0.5"/></radialGradient></defs></svg>`
+        },
+        { id: 'item6', name: 'Mini Galaxy', cost: 100, levelRequired: 3, decorClass: 'w-12 h-12',
+          svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50,50 m0,-20 a20,20 0 1,0 0,40 a20,20 0 1,0 0,-40" fill="none" stroke="#FFF" stroke-width="4"/><path d="M50,50 m0,-30 a30,30 0 1,0 0,60 a30,30 0 1,0 0,-60" fill="none" stroke="#FFF" stroke-width="2" stroke-dasharray="2 4" opacity="0.5"/><path d="M50,50 m-10,0 a10,10 0 1,1 20,0 a10,10 0 1,1 -20,0" fill="#FFF176"/></svg>`
+        },
+        { id: 'item7', name: 'Pulsar', cost: 150, levelRequired: 4, isAnimated: true, decorClass: 'w-16 h-16',
+          svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="10" fill="#FFF"><animate attributeName="r" values="5;20;5" dur="1.5s" repeatCount="indefinite" /><animate attributeName="opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite" /></circle><circle cx="50" cy="50" r="15" fill="none" stroke="#FFF" stroke-width="2"><animate attributeName="r" values="10;30;10" dur="1.5s" repeatCount="indefinite" /><animate attributeName="opacity" values="0.5;0;0.5" dur="1.5s" repeatCount="indefinite" /></circle></svg>`
+        },
+      ];
+      
+      const storeLevels = [...new Set(STORE_ITEMS.map(item => item.levelRequired))].sort((a, b) => a - b);
+
+      const SUGGESTION_BANK = {
+        health: [
+          { name: 'Go for a 10 min walk', type: 'health' },
+          { name: 'Stretch for 5 minutes', type: 'health' },
+          { name: 'Try a 5-min meditation', type: 'mindfulness' }, // Cross-suggestion
+        ],
+        mindfulness: [
+          { name: '5-min journaling', type: 'mindfulness' },
+          { name: 'Read 10 pages of a book', type: 'mindfulness' },
+          { name: 'Listen to one calm song, no distractions', type: 'mindfulness' },
+        ],
+        productivity: [
+          { name: 'Plan tomorrow\'s top 3 tasks', type: 'productivity' },
+          { name: 'Tidy your desk for 5 mins', type: 'productivity' },
+          { name: 'Review your weekly goals', type: 'productivity' },
+        ],
+        creativity: [
+          { name: 'Sketch one simple object', type: 'creativity' },
+          { name: 'Write down 3 new ideas', type: 'creativity' },
+          { name: 'Take one interesting photo', type: 'creativity' },
+        ],
+        cosmos: [
+          { name: 'Practice 3-min focused breathing', type: 'cosmos' },
+          { name: 'Reflect on one thing you\'re grateful for', type: 'cosmos' },
+        ],
+        general: [
+          { name: 'Go for a 10 min walk', type: 'health' },
+          { name: '5-min journaling', type: 'mindfulness' },
+        ]
+      };
+      
+      const QUEST_BANK = [
+        { id: 'q1', title: 'First Steps', 
+          description: 'Check in your first habit.', 
+          target: { type: 'checkin', count: 1 }, 
+          reward: { sunlight: 20, xp: 50 } 
+        },
+        { id: 'q2', title: 'A New Leaf', 
+          description: 'Plant a new habit seed.', 
+          target: { type: 'plant', count: 2 }, 
+          reward: { sunlight: 30, xp: 20 } 
+        },
+        { id: 'q3', title: 'Collector', 
+          description: 'Plant 3 habits in total.', 
+          target: { type: 'plant', count: 3 }, 
+          reward: { sunlight: 50, xp: 50 } 
+        },
+        { id: 'q4', title: 'Growing Strong', 
+          description: 'Reach a 3-day streak on any habit.', 
+          target: { type: 'streak', count: 3 }, 
+          reward: { sunlight: 50, xp: 100 } 
+        },
+        { id: 'q5', title: 'Specialist', 
+          description: 'Try a new habit category (e.g., Mindfulness).', 
+          target: { type: 'category', count: 2 }, 
+          reward: { sunlight: 25, xp: 25 }
+        },
+        { id: 'q6', title: 'Well-Rounded', 
+          description: 'Have at least 3 habit categories in your space.', 
+          target: { type: 'category', count: 3 }, 
+          reward: { sunlight: 50, xp: 100 }
+        },
+      ];
+      
+      const WEATHER_TYPES = [
+        { type: 'sunny', emoji: '☀️', message: 'Clear skies.', bonus: null },
+        { type: 'rainy', emoji: '☄️', message: 'Meteor shower! +10 Sunlight!', bonus: { type: 'sunlight', amount: 10 } },
+        { type: 'windy', emoji: '🌀', message: 'Strong solar winds.', bonus: null },
+        { type: 'rainbow', emoji: '💥', message: 'Rare supernova! +50 XP!', bonus: { type: 'xp', amount: 50 } },
+      ];
+      
+      const toYYYYMMDD = (date) => date.toISOString().split('T')[0];
+      
+      const getYesterdayString = () => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return toYYYYMMDD(yesterday);
+      };
+
+      function getSmartSuggestion(habits, userLevel) {
+        if (!habits || habits.length === 0) {
+          return SUGGESTION_BANK.general[0]; 
+        }
+
+        const habitTypes = habits.map(h => h.type);
+        const consistentHabits = habits.filter(h => h.growth > 0);
+
+        if (consistentHabits.length > 0) {
+          const targetHabit = consistentHabits[Math.floor(Math.random() * consistentHabits.length)];
+          const suggestionsForType = SUGGESTION_BANK[targetHabit.type] || [];
+          
+          for (const suggestion of suggestionsForType) {
+            if (!habits.some(h => h.name === suggestion.name)) {
+              return suggestion;
+            }
+          }
+        }
+
+        const allCategories = Object.keys(PLANT_SPECIES);
+        const missingCategories = allCategories.filter(c => !habitTypes.includes(c));
+
+        if (missingCategories.length > 0) {
+          const targetCategory = missingCategories[Math.floor(Math.random() * missingCategories.length)];
+          if (userLevel >= (PLANT_SPECIES[targetCategory].levelRequired || 1)) {
+            const suggestionsForType = SUGGESTION_BANK[targetCategory] || [];
+            if (suggestionsForType.length > 0) {
+              return suggestionsForType[Math.floor(Math.random() * suggestionsForType.length)];
+            }
+          }
+        }
+
+        const generalSuggestions = SUGGESTION_BANK.general;
+        for (const suggestion of generalSuggestions) {
+          if (!habits.some(h => h.name === suggestion.name)) {
+            return suggestion;
+          }
+        }
+        return null; 
+      }
+
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result.split(',')[1]); 
+          reader.onerror = (error) => reject(error);
+        });
+      }
+
+      async function fetchWithBackoff(url, options, retries = 5, delay = 1000) {
+        try {
+          const response = await fetch(url, options);
+          if (!response.ok) {
+            if (response.status === 429 && retries > 0) {
+              await new Promise(res => setTimeout(res, delay));
+              return fetchWithBackoff(url, options, retries - 1, delay * 2);
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return await response.json();
+        } catch (error) {
+          console.error("Fetch error:", error.message);
+          if (retries > 0 && error.message.includes('HTTP error! status: 429')) {
+            await new Promise(res => setTimeout(res, delay));
+            return fetchWithBackoff(url, options, retries - 1, delay * 2);
+          }
+          throw error;
+        }
+      }
+      
+      async function fetchAiSuggestion(type) {
+          const apiKey = ""; 
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+          
+          const systemPrompt = `You are a helpful assistant for a habit-tracking app. The user wants a new "tiny habit" idea (something small, 5 minutes or less). Respond *only* with a valid JSON object: {"habitName": "Your creative habit idea."}.`;
+          const userPrompt = `Suggest one, short, 5-minute habit related to the category: "${type}".`;
+
+          const payload = {
+              contents: [{ parts: [{ text: userPrompt }] }],
+              systemInstruction: {
+                  parts: [{ text: systemPrompt }]
+              },
+              generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                  type: "OBJECT",
+                  properties: {
+                    "habitName": { "type": "STRING" }
+                  },
+                  propertyOrdering: ["habitName"]
+                }
+              }
+          };
+          
+          try {
+            const result = await fetchWithBackoff(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const candidate = result.candidates?.[0];
+            const jsonResponse = JSON.parse(candidate.content.parts[0].text);
+            return jsonResponse.habitName;
+          } catch (error) {
+            console.error("Error fetching AI suggestion:", error);
+            return "Error getting suggestion. Try again.";
+          }
+      }
+
+      // --- Main App Component ---
+      function App() {
+        const [state, dispatch] = useReducer(appReducer, {
+          habits: [
+            { id: 1, name: 'Drink 2L of water', type: 'health', growth: 0, health: 100, x: 20, y: 30, lastMood: 'default', currentStreak: 0, longestStreak: 0 },
+            { id: 2, name: 'Read a book', type: 'mindfulness', growth: 1, health: 100, x: 50, y: 60, lastMood: 'calm', currentStreak: 1, longestStreak: 1 },
+            { id: 3, name: 'Daily sketch', type: 'creativity', growth: 0, health: 75, x: 75, y: 40, lastMood: 'happy', currentStreak: 0, longestStreak: 0 },
+          ],
+          userLevel: 1,
+          userXP: 0,
+          xpToNextLevel: 100,
+          userSunlight: 50,
+          decorations: [
+            { id: 'd1', svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M70,10 C90,20 90,40 75,50 C60,60 40,70 30,60 C20,50 10,30 25,20 C40,10 50,0 70,10 Z" fill="#9E9E9E"/><circle cx="35" cy="30" r="5" fill="#757575"/><circle cx="60" cy="40" r="8" fill="#757575"/><circle cx="50" cy="25" r="3" fill="#757575"/></svg>`, x: 80, y: 80, decorClass: 'w-10 h-10', scale: 1, rotation: 0, zIndex: 10 },
+            { id: 'd2', svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M80,90 C90,90 95,80 90,70 C85,60 70,65 60,70 C50,75 30,85 30,90 S70,90 80,90 Z" fill="#E0E0E0"/><circle cx="40" cy="80" r="5" fill="#BDBDBD"/><circle cx="65" cy="75" r="8" fill="#BDBDBD"/></svg>`, x: 30, y: 75, decorClass: 'w-8 h-8', scale: 1, rotation: 0, zIndex: 10 },
+          ],
+          checkInHistory: [], 
+          activeQuests: [QUEST_BANK[0]], 
+          weather: WEATHER_TYPES[0], 
+        });
+
+        const { habits, userLevel, userXP, xpToNextLevel, userSunlight, decorations, checkInHistory, activeQuests, weather } = state;
+        
+        const [isEditing, setIsEditing] = useState(false);
+        const [isStoreOpen, setIsStoreOpen] = useState(false);
+        const [timeOfDay, setTimeOfDay] = useState('morning');
+        const [addModalState, setAddModalState] = useState({ isOpen: false, prefill: null });
+        const [isAiCheckInModalOpen, setIsAiCheckInModalOpen] = useState(false);
+        const [detailsModalState, setDetailsModalState] = useState({ isOpen: false, habit: null });
+        const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+        const [isNpcModalOpen, setIsNpcModalOpen] = useState(false);
+        const [decorModalState, setDecorModalState] = useState({ isOpen: false, decor: null });
+        
+        const [isLoading, setIsLoading] = useState(false);
+        const [message, setMessage] = useState(null); 
+        const [suggestion, setSuggestion] = useState(null);
+
+        const updateTimeOfDay = () => {
+          const hour = new Date().getHours();
+          if (hour < 11) setTimeOfDay('morning');
+          else if (hour < 18) setTimeOfDay('sunset');
+          else setTimeOfDay('night');
+        };
+
+        useEffect(() => {
+          updateTimeOfDay();
+          const interval = setInterval(updateTimeOfDay, 60000); 
+          return () => clearInterval(interval);
+        }, []);
+
+        useEffect(() => {
+          const newSuggestion = getSmartSuggestion(habits, userLevel);
+          setSuggestion(newSuggestion);
+        }, [habits, userLevel]);
+        
+        useEffect(() => {
+          const weatherInterval = setInterval(() => {
+            const rand = Math.random();
+            let newWeather;
+            if (rand < 0.05) { // 5% chance of supernova
+              newWeather = WEATHER_TYPES.find(w => w.type === 'rainbow'); // id is 'rainbow'
+            } else if (rand < 0.3) { // 25% chance of meteor shower
+              newWeather = WEATHER_TYPES.find(w => w.type === 'rainy'); // id is 'rainy'
+            } else if (rand < 0.5) { // 20% chance of solar wind
+              newWeather = WEATHER_TYPES.find(w => w.type === 'windy'); // id is 'windy'
+            } else { // 50% chance of clear skies
+              newWeather = WEATHER_TYPES.find(w => w.type === 'sunny'); // id is 'sunny'
+            }
+            dispatch({ type: 'SET_WEATHER', payload: newWeather });
+          }, 3 * 60 * 1000); 
+          
+          return () => clearInterval(weatherInterval);
+        }, []);
+
+        useEffect(() => {
+          const today = toYYYYMMDD(new Date());
+          const yesterday = getYesterdayString();
+          
+          const habitsToUpdate = habits.map(habit => {
+            const lastCheckIn = checkInHistory
+              .filter(h => h.habitId === habit.id)
+              .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+            let newHealth = habit.health;
+            let newStreak = habit.currentStreak;
+
+            if (lastCheckIn) {
+              const lastDate = lastCheckIn.date;
+              if (lastDate !== today && lastDate !== yesterday) {
+                newHealth = Math.max(20, habit.health - 10);
+                newStreak = 0; 
+              }
+            }
+            return { ...habit, health: newHealth, currentStreak: newStreak };
+          });
+          
+          dispatch({ type: 'SET_HABITS', payload: habitsToUpdate });
+
+        }, []); 
+
+
+        const timeOfDayStyles = {
+          morning: 'from-blue-300 to-blue-100', // Light blue sky
+          sunset: 'from-orange-400 via-pink-400 to-indigo-700', // Sunset nebula
+          night: 'from-gray-900 to-indigo-900', // Night sky
+        };
+
+        const addHabit = (name, type) => {
+          dispatch({ type: 'ADD_HABIT', payload: { name, type } });
+          setAddModalState({ isOpen: false, prefill: null }); 
+        };
+
+        const deleteHabit = (habitId) => {
+          dispatch({ type: 'DELETE_HABIT', payload: habitId });
+          setDetailsModalState({ isOpen: false, habit: null }); 
+        };
+        
+        const deleteDecoration = (decorId) => {
+          dispatch({ type: 'DELETE_DECORATION', payload: decorId });
+          setDecorModalState({ isOpen: false, decor: null }); 
+        };
+        
+        const buyDecoration = (item) => {
+          if (userSunlight >= item.cost) {
+            dispatch({ type: 'BUY_DECORATION', payload: item });
+          } else {
+            setMessage("Not enough Sunlight!");
+            setTimeout(() => setMessage(null), 2000);
+          }
+        };
+
+        const handleAiCheckIn = async (file, mood) => {
+          if (!file) return;
+
+          setIsLoading(true);
+          setMessage(null);
+
+          const habitNames = habits.map(h => h.name);
+
+          try {
+            const base64ImageData = await fileToBase64(file);
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            const systemPrompt = `You are an AI classifier for a habit app. The user has these habits: [${habitNames.join(', ')}]. The user uploaded an image. Your task is to find the *one* habit from that list that *best* matches the image. Respond *only* with a valid JSON object: {"matchedHabitName": "Exact Habit Name From List", "reason": "Your brief explanation."}. If no habit is a good match, respond with {"matchedHabitName": "None", "reason": "Image doesn't seem to match any of your habits."}.`;
+            const userPrompt = `Based on the image, which of these habits did the user complete? Habits: [${habitNames.join(', ')}]`;
+
+            const payload = {
+              contents: [ { role: "user", parts: [ { text: userPrompt }, { inlineData: { mimeType: file.type, data: base64ImageData } } ] } ],
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                  type: "OBJECT",
+                  properties: { "matchedHabitName": { "type": "STRING" }, "reason": { "type": "STRING" } },
+                  propertyOrdering: ["matchedHabitName", "reason"]
+                }
+              }
+            };
+
+            const result = await fetchWithBackoff(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            const candidate = result.candidates?.[0];
+            if (!candidate?.content?.parts?.[0]?.text) {
+              throw new Error("Invalid API response structure.");
+            }
+
+            const jsonResponse = JSON.parse(candidate.content.parts[0].text);
+            const { matchedHabitName, reason } = jsonResponse;
+
+            if (matchedHabitName && matchedHabitName !== 'None') {
+              const matchedHabit = habits.find(h => h.name === matchedHabitName);
+
+              if (matchedHabit) {
+                dispatch({
+                  type: 'CHECK_IN',
+                  payload: {
+                    habitId: matchedHabit.id,
+                    mood: mood,
+                    base64Image: base64ImageData,
+                    weather: weather 
+                  }
+                });
+                
+                let sunlightGained = 10 + (weather.bonus && weather.bonus.type === 'sunlight' ? weather.bonus.amount : 0);
+                let xpGained = 25 + (weather.bonus && weather.bonus.type === 'xp' ? weather.bonus.amount : 0);
+
+                let levelUpMessage = `Success: ${reason} (+${xpGained} XP, +${sunlightGained} ☀️)`;
+                
+                const newXP = userXP + xpGained;
+                if (newXP >= xpToNextLevel) {
+                  const newLevel = userLevel + 1;
+                  let unlockMessage = "";
+                  const newPlant = Object.keys(PLANT_SPECIES).find(key => PLANT_SPECIES[key].levelRequired === newLevel);
+                  const newItem = STORE_ITEMS.find(item => item.levelRequired === newLevel);
+                  if (newPlant) unlockMessage = ` You've unlocked the ${newPlant} type!`;
+                  if (newItem) unlockMessage += ` Check the store for new items!`;
+                  levelUpMessage = `LEVEL UP! You are now Level ${newLevel}!${unlockMessage}`;
+                }
+                
+                setMessage(levelUpMessage);
+
+              } else {
+                setMessage(`AI Error: Matched habit "${matchedHabitName}" not found.`);
+              }
+            } else {
+              setMessage(`No Match: ${reason}`);
+            }
+
+          } catch (error) {
+            console.error("Error during AI check-in:", error);
+            setMessage(`Error: ${error.message || "Could not verify image."}`);
+          }
+
+          setIsLoading(false);
+          setTimeout(() => {
+            setIsAiCheckInModalOpen(false);
+            setMessage(null);
+          }, 4000); 
+        };
+
+        const handleSuggestionClick = () => {
+          if (suggestion) {
+            setAddModalState({ isOpen: true, prefill: suggestion });
+          }
+        };
+        
+        const handleDragStart = (e, item) => {
+          if (!isEditing) {
+            e.preventDefault();
+            return;
+          }
+          e.dataTransfer.setData("application/json", JSON.stringify(item));
+          e.currentTarget.classList.add('opacity-50', 'scale-110'); 
+        };
+        
+        const handleDragEnd = (e) => {
+           e.currentTarget.classList.remove('opacity-50', 'scale-110');
+        };
+
+        const handleDragOver = (e) => {
+          if (isEditing) {
+            e.preventDefault(); 
+          }
+        };
+
+        const handleDrop = (e) => {
+          if (!isEditing) return;
+          e.preventDefault();
+          
+          const item = JSON.parse(e.dataTransfer.getData("application/json"));
+          const forest = e.currentTarget.getBoundingClientRect();
+          
+          const x_px = e.clientX - forest.left;
+          const y_px = e.clientY - forest.top;
+          
+          const x_pct = Math.min(95, Math.max(5, (x_px / forest.width) * 100));
+          const y_pct = Math.min(95, Math.max(5, (y_px / forest.height) * 100));
+
+          dispatch({ type: 'MOVE_ITEM', payload: { ...item, x: x_pct, y: y_pct } });
+        };
+        
+        
+        const PlusIcon = () => (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2">
+            <path d="M5 12h14" />
+            <path d="M12 5v14" />
+          </svg>
+        );
+        
+        const CameraIcon = () => (
+           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2">
+            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+            <circle cx="12" cy="13" r="3" />
+          </svg>
+        );
+        
+        const CalendarIcon = () => (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2">
+            <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+            <line x1="16" x2="16" y1="2" y2="6" />
+            <line x1="8" x2="8" y1="2" y2="6" />
+            <line x1="3" x2="21" y1="10" y2="10" />
+          </svg>
+        );
+        
+        const StoreIcon = () => (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2">
+            <path d="m12 2.5-7.5 7.5v11h15v-11z" />
+            <path d="m19 10-7 8-7-8" />
+            <path d="M10.2 2.5 12 4.3 13.8 2.5" />
+          </svg>
+        );
+        
+        const EditIcon = () => (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-2">
+            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+          </svg>
+        );
+        
+        const CoinIcon = () => ( 
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-1 text-amber-500">
+            <circle cx="12" cy="12" r="8" />
+            <path d="M12 18V6" />
+            <path d="M16 14c-2-1-4-1-6 0" />
+            <path d="M16 10c-2 1-4 1-6 0" />
+          </svg>
+        );
+
+        return (
+          <div className="flex flex-col min-h-screen bg-gray-100 font-poppins">
+            <header className="text-center p-6 bg-white border-b border-gray-200">
+              <h1 className="text-4xl font-bold text-gray-800"> SnapHabit Space</h1>
+              <p className="text-lg text-gray-600 mt-2">Grow your space with real actions, proven by your photos.</p>
+            </header>
+
+            <main className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8">
+              <div className="flex flex-col lg:flex-row gap-6">
+                
+                <div className="lg:w-1/3 lg:max-w-sm flex flex-col gap-6">
+                  
+                  <div className="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 className="text-2xl font-semibold mb-4 border-b pb-2">Your Dashboard</h2>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setIsAiCheckInModalOpen(true)}
+                        className="flex items-center justify-center col-span-2 bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:bg-green-700 transition-all duration-300 transform hover:-translate-y-0.5 animate-record-pulse"
+                      >
+                        <CameraIcon /> Record Habit
+                      </button>
+                      <button
+                        onClick={() => setAddModalState({ isOpen: true, prefill: null })}
+                        className="flex items-center justify-center bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:bg-indigo-700 transition-all duration-300 transform hover:-translate-y-0.5"
+                      >
+                        <PlusIcon /> Plant
+                      </button>
+                      <button
+                        onClick={() => setIsCalendarModalOpen(true)}
+                        className="flex items-center justify-center bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:bg-gray-800 transition-all duration-300 transform hover:-translate-y-0.5"
+                      >
+                        <CalendarIcon /> History
+                      </button>
+                      <button
+                        onClick={() => setIsStoreOpen(true)}
+                        className="flex items-center justify-center col-span-2 bg-amber-500 text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:bg-amber-600 transition-all duration-300 transform hover:-translate-y-0.5"
+                      >
+                        <StoreIcon /> Space Store
+                      </button>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <button
+                        onClick={() => setIsEditing(!isEditing)}
+                        className={`w-full flex items-center justify-center font-semibold py-3 px-4 rounded-lg shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 ${
+                          isEditing
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                        }`}
+                      >
+                        <EditIcon /> {isEditing ? 'Save Layout' : 'Edit Space'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-2xl shadow-lg">
+                    <h3 className="text-lg font-medium mb-3">Space Stats</h3>
+
+                    <div className="mb-4 bg-indigo-50 rounded-xl p-4 shadow-inner">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold uppercase text-indigo-500">Level</span>
+                        <span className="py-1 px-3 bg-indigo-600 text-white text-lg font-bold rounded-full shadow-md">
+                          {userLevel}
+                        </span>
+                      </div>
+                      
+                      <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner overflow-hidden">
+                        <div
+                          className="bg-indigo-500 h-3 rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${(userXP / xpToNextLevel) * 100}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-right text-sm font-medium text-gray-600 mt-1">{userXP} / {xpToNextLevel} XP</div>
+                      
+                      <div className="flex justify-between items-center mt-3 pt-2 border-t">
+                         <span className="text-xs font-bold uppercase text-yellow-600">Sunlight</span>
+                         <span className="text-lg font-bold text-yellow-700">☀️ {userSunlight}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-gray-700"><span className="font-semibold">{habits.length}</span> total items in your space.</p>
+                  </div>
+                    
+                  {suggestion && (
+                    <div className="bg-white p-6 rounded-2xl shadow-lg">
+                      <h4 className="font-semibold text-indigo-800"> Smart Suggestion</h4>
+                      <p className="text-sm text-indigo-700">
+                        How about adding: "{suggestion.name}"?
+                      </p>
+                      <button
+                        onClick={handleSuggestionClick}
+                        className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 mt-2"
+                      >
+                        Yes, add this habit &rarr;
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="lg:flex-1">
+                  <div
+                    className={`relative w-full h-[400px] lg:h-[600px] bg-gradient-to-b ${timeOfDayStyles[timeOfDay]} rounded-2xl overflow-hidden border-8 border-white transition-all duration-1000 ${isEditing ? 'border-blue-500 border-dashed' : 'border-white'} ${timeOfDay === 'night' ? 'shadow-[inset_0_10px_20px_-10px_rgba(255,255,255,0.1)]' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                  >
+                    <WeatherOverlay weather={weather} timeOfDay={timeOfDay} />
+                    
+                    <div className="absolute top-4 left-4 bg-white/30 backdrop-blur-sm p-2 px-3 rounded-full flex items-center gap-2 text-lg shadow-lg z-30">
+                      <span>{weather.emoji}</span>
+                      <span className="text-sm font-medium text-gray-900">{weather.message}</span>
+                    </div>
+                    
+                    {isEditing && (
+                      <React.Fragment>
+                        <div className="absolute top-0 left-0 right-0 p-2 bg-blue-600 text-white text-center text-sm font-semibold z-40">
+                          Editing Mode
+                        </div>
+                        <div className="absolute inset-0 bg-grid-pattern [background-size:25px_25px] opacity-30 z-0"></div>
+                        <div className="absolute top-12 left-1/2 -translate-x-1/2 p-2 px-3 bg-gray-900/80 text-white text-xs rounded-full z-40">
+                          Drag items to move. Tap decor to edit.
+                        </div>
+                      </React.Fragment>
+                    )}
+                  
+                    {(timeOfDay === 'morning' || timeOfDay === 'sunset') && (
+                      <React.Fragment>
+                        <div className="absolute top-[10%] left-0 w-32 h-16 bg-white rounded-full opacity-70 animate-drift-slow-1 z-0"></div>
+                        <div className="absolute top-[20%] left-0 w-48 h-24 bg-white rounded-full opacity-60 animate-drift-slow-2 z-0"></div>
+                      </React.Fragment>
+                    )}
+                    {timeOfDay === 'night' && (
+                      <React.Fragment>
+                        <div className="absolute inset-0 w-full h-full bg-[radial-gradient(white_1px,transparent_1.1px)] [background-size:30px_30px] [background-position:0_0,15px_15px] opacity-20 z-0"></div>
+                        {[...Array(10)].map((_, i) => (
+                          <div 
+                            key={i}
+                            className="absolute w-1 h-1 bg-yellow-300 rounded-full shadow-[0_0_8px_4px_rgba(253,224,71,0.7)] animate-firefly-pulse z-0"
+                            style={{
+                              left: `${Math.random() * 100}%`,
+                              top: `${Math.random() * 100}%`,
+                              animationDelay: `${Math.random() * 3}s`,
+                            }}
+                          ></div>
+                        ))}
+                      </React.Fragment>
+                    )}
+                    
+                    <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-indigo-900/50 to-transparent z-10"></div>
+                    
+                    <ForestItem
+                      item={{
+                        id: 'npc-spirit',
+                        type: 'npc',
+                        x: 10, y: 85,
+                        decorClass: 'w-16 h-16',
+                        svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50,10 C70,10 90,30 90,50 C90,70 80,80 70,90 C60,100 40,100 30,90 C20,80 10,70 10,50 C10,30 30,10 50,10 Z" fill="#E1F5FE"/><circle cx="40" cy="50" r="5" fill="#0277BD"/><circle cx="60" cy="50" r="5" fill="#0277BD"/><path d="M40,65 Q50,75 60,65" stroke="#0277BD" stroke-width="3" fill="none"/></svg>`,
+                        quest: activeQuests[0], 
+                      }}
+                      isEditing={isEditing}
+                      onDragStart={() => {}} 
+                      onDragEnd={() => {}}
+                      onClick={() => !isEditing && setIsNpcModalOpen(true)}
+                    />
+                    
+                    {decorations.map(decor => (
+                      <ForestItem
+                        key={decor.id}
+                        item={{ ...decor, type: 'decor' }}
+                        isEditing={isEditing}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onClick={() => {
+                          if (isEditing) {
+                            setDecorModalState({ isOpen: true, decor: decor });
+                          }
+                        }}
+                      />
+                    ))}
+                    
+                    {habits.map(habit => (
+                      <ForestItem
+                        key={habit.id}
+                        item={{ ...habit, type: 'plant' }}
+                        isEditing={isEditing}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onClick={() => !isEditing && setDetailsModalState({ isOpen: true, habit: habit })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </main>
+
+            {/* --- Modals --- */}
+            {addModalState.isOpen && (
+              <AddHabitModal
+                onClose={() => setAddModalState({ isOpen: false, prefill: null })}
+                onAddHabit={addHabit}
+                prefill={addModalState.prefill}
+                userLevel={userLevel} 
+              />
+            )}
+            {isAiCheckInModalOpen && (
+              <AiCheckInModal
+                onClose={() => setIsAiCheckInModalOpen(false)}
+                onCheckIn={handleAiCheckIn}
+                isLoading={isLoading}
+                message={message}
+              />
+            )}
+            
+            {isStoreOpen && (
+              <StoreModal
+                sunlight={userSunlight}
+                userLevel={userLevel} 
+                onBuy={buyDecoration}
+                onClose={() => setIsStoreOpen(false)}
+                CoinIcon={CoinIcon} 
+              />
+            )}
+            
+            {detailsModalState.isOpen && (
+              <HabitDetailsModal
+                habit={detailsModalState.habit}
+                history={checkInHistory.filter(h => h.habitId === detailsModalState.habit.id)}
+                onClose={() => setDetailsModalState({ isOpen: false, habit: null })}
+                onDelete={deleteHabit}
+              />
+            )}
+            {isCalendarModalOpen && (
+              <CalendarModal
+                onClose={() => setIsCalendarModalOpen(false)}
+                habits={habits}
+                history={checkInHistory}
+              />
+            )}
+            
+            {isNpcModalOpen && (
+              <NpcModal
+                onClose={() => setIsNpcModalOpen(false)}
+                quests={activeQuests}
+              />
+            )}
+            
+            {decorModalState.isOpen && (
+              <DecorationModal
+                decor={decorModalState.decor}
+                onClose={() => setDecorModalState({ isOpen: false, decor: null })}
+                onDelete={deleteDecoration}
+                onUpdate={(updatedProps) => {
+                  dispatch({ 
+                    type: 'UPDATE_DECORATION', 
+                    payload: { id: decorModalState.decor.id, ...updatedProps } 
+                  });
+                }}
+                onBringToFront={() => dispatch({ type: 'BRING_TO_FRONT', payload: decorModalState.decor.id })}
+                onSendToBack={() => dispatch({ type: 'SEND_TO_BACK', payload: decorModalState.decor.id })}
+              />
+            )}
+            
+            {message && !isAiCheckInModalOpen && (
+               <div className={`fixed bottom-10 left-1/2 -translate-x-1/2
+                               py-2 px-4 rounded-lg shadow-lg z-50
+                               ${message.startsWith('Success') || message.startsWith('LEVEL') || message.startsWith('Quest') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {message}
+               </div>
+            )}
+          </div>
+        );
+      }
+      
+      function appReducer(state, action) {
+        switch (action.type) {
+          case 'SET_HABITS':
+            return { ...state, habits: action.payload };
+            
+          case 'ADD_HABIT': {
+            const { name, type } = action.payload;
+            const newHabit = {
+              id: Date.now(),
+              name,
+              type,
+              growth: 0,
+              health: 100,
+              x: Math.random() * 80 + 10,
+              y: Math.random() * 80 + 10,
+              lastMood: 'default',
+              currentStreak: 0, 
+              longestStreak: 0, 
+            };
+            const newHabits = [...state.habits, newHabit];
+            return checkQuestCompletion({ ...state, habits: newHabits }); 
+          }
+            
+          case 'DELETE_HABIT':
+            return { ...state, habits: state.habits.filter(h => h.id !== action.payload) };
+            
+          case 'BUY_DECORATION': {
+            const item = action.payload;
+            const newDecoration = {
+              id: `d${Date.now()}`,
+              svg: item.svg,
+              x: Math.random() * 80 + 10,
+              y: Math.random() * 80 + 10,
+              decorClass: item.decorClass,
+              isAnimated: !!item.isAnimated,
+              scale: 1,
+              rotation: 0,
+              zIndex: 10,
+            };
+            return {
+              ...state,
+              userSunlight: state.userSunlight - item.cost,
+              decorations: [...state.decorations, newDecoration]
+            };
+          }
+            
+          case 'DELETE_DECORATION':
+            return { ...state, decorations: state.decorations.filter(d => d.id !== action.payload) };
+            
+          case 'MOVE_ITEM': {
+            const { id, type, x, y } = action.payload;
+            if (type === 'plant') {
+              return { ...state, habits: state.habits.map(h => 
+                h.id === id ? { ...h, x, y } : h
+              )};
+            } else if (type === 'decor') {
+              return { ...state, decorations: state.decorations.map(d => 
+                d.id === id ? { ...d, x, y } : d
+              )};
+            }
+            return state; 
+          }
+          
+          case 'UPDATE_DECORATION': {
+            const { id, ...updatedProps } = action.payload;
+            return {
+              ...state,
+              decorations: state.decorations.map(d =>
+                d.id === id ? { ...d, ...updatedProps } : d
+              )
+            };
+          }
+          
+          case 'BRING_TO_FRONT': {
+            const maxZ = Math.max(10, ...state.decorations.map(d => d.zIndex || 10));
+            return {
+              ...state,
+              decorations: state.decorations.map(d =>
+                d.id === action.payload ? { ...d, zIndex: maxZ + 1 } : d
+              )
+            };
+          }
+          
+          case 'SEND_TO_BACK': {
+            const minZ = Math.min(10, ...state.decorations.map(d => d.zIndex || 10));
+            return {
+              ...state,
+              decorations: state.decorations.map(d =>
+                d.id === action.payload ? { ...d, zIndex: minZ - 1 } : d
+              )
+            };
+          }
+            
+          case 'CHECK_IN': {
+            const { habitId, mood, base64Image, weather } = action.payload;
+            const today = toYYYYMMDD(new Date());
+            const yesterday = getYesterdayString();
+            
+            let newStreak = 1;
+            let newLongestStreak;
+            
+            const lastCheckIn = state.checkInHistory
+              .filter(h => h.habitId === habitId)
+              .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+              
+            const habitToUpdate = state.habits.find(h => h.id === habitId);
+
+            if (lastCheckIn) {
+              if (lastCheckIn.date === yesterday) {
+                newStreak = habitToUpdate.currentStreak + 1; 
+              } else if (lastCheckIn.date === today) {
+                newStreak = habitToUpdate.currentStreak; 
+              }
+            }
+            newLongestStreak = Math.max(habitToUpdate.longestStreak, newStreak);
+            
+            const newHabits = state.habits.map(h =>
+              h.id === habitId
+                ? {
+                    ...h,
+                    growth: Math.min(MAX_GROWTH, h.growth + 1),
+                    health: 100, 
+                    lastMood: mood,
+                    currentStreak: newStreak, 
+                    longestStreak: newLongestStreak, 
+                  }
+                : h
+            );
+            
+            const newCheckIn = { habitId, date: today, mood, base64Image };
+            const newHistory = [...state.checkInHistory, newCheckIn];
+            
+            let xpGained = 25;
+            let sunlightGained = 10;
+            
+            if (weather.bonus && weather.bonus.type === 'sunlight') {
+              sunlightGained += weather.bonus.amount;
+            }
+            if (weather.bonus && weather.bonus.type === 'xp') {
+              xpGained += weather.bonus.amount;
+            }
+            
+            let newXP = state.userXP + xpGained;
+            let newLevel = state.userLevel;
+            let newXpToNext = state.xpToNextLevel;
+
+            if (newXP >= newXpToNext) {
+              newLevel++;
+              newXP = newXP - newXpToNext; 
+              newXpToNext = Math.floor(newXpToNext * 1.5);
+            }
+            
+            const newState = {
+              ...state,
+              habits: newHabits,
+              checkInHistory: newHistory,
+              userXP: newXP,
+              userLevel: newLevel,
+              xpToNextLevel: newXpToNext,
+              userSunlight: state.userSunlight + sunlightGained
+            };
+            
+            return checkQuestCompletion(newState); 
+          }
+            
+          case 'SET_WEATHER':
+            return { ...state, weather: action.payload };
+            
+          case 'COMPLETE_QUEST': {
+            const { quest, nextQuest } = action.payload;
+            return {
+              ...state,
+              userXP: state.userXP + quest.reward.xp,
+              userSunlight: state.userSunlight + quest.reward.sunlight,
+              activeQuests: nextQuest ? [nextQuest] : [] 
+            };
+          }
+            
+          default:
+            return state;
+        }
+      }
+      
+      function checkQuestCompletion(state) {
+        const { habits, checkInHistory, activeQuests } = state;
+        if (!activeQuests || activeQuests.length === 0) {
+          return state; 
+        }
+        
+        const quest = activeQuests[0];
+        let isComplete = false;
+        
+        switch (quest.target.type) {
+          case 'checkin':
+            if (checkInHistory.length >= quest.target.count) {
+              isComplete = true;
+            }
+            break;
+          case 'plant':
+            if (habits.length >= quest.target.count) {
+              isComplete = true;
+            }
+            break;
+          case 'streak':
+            if (habits.some(h => h.currentStreak >= quest.target.count)) {
+              isComplete = true;
+            }
+            break;
+          case 'category':
+            const uniqueTypes = new Set(habits.map(h => h.type));
+            if (uniqueTypes.size >= quest.target.count) {
+              isComplete = true;
+            }
+            break;
+        }
+        
+        if (isComplete) {
+          const currentQuestIndex = QUEST_BANK.findIndex(q => q.id === quest.id);
+          const nextQuest = QUEST_BANK[currentQuestIndex + 1] || null; 
+          
+          setTimeout(() => {
+            const questMessage = `Quest Complete: ${quest.title} (+${quest.reward.xp} XP, +${quest.reward.sunlight} ☀️)`;
+            console.log(questMessage);
+          }, 500);
+          
+          return {
+            ...state,
+            userXP: state.userXP + quest.reward.xp,
+            userSunlight: state.userSunlight + quest.reward.sunlight,
+            activeQuests: nextQuest ? [nextQuest] : [] 
+          };
+        }
+        
+        return state; 
+      }
+      
+      function WeatherOverlay({ weather, timeOfDay }) {
+        if (!weather) return null;
+
+        const isNight = timeOfDay === 'night';
+
+        // 'meteor-shower'
+        if (weather.type === 'rainy') {
+          return (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+              {[...Array(20)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-1 h-10 bg-white rounded-full shadow-[0_0_10px_white] animate-meteor-fall"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: '-50px', 
+                    animationDelay: `${Math.random() * 5}s`,
+                    animationDuration: `${Math.random() * 0.5 + 0.5}s`, 
+                    opacity: isNight ? '0.7' : '1',
+                  }}
+                ></div>
+              ))}
+            </div>
+          );
+        }
+
+        // 'supernova'
+        if (weather.type === 'rainbow' && !isNight) {
+          return (
+            <div className="absolute top-1/4 left-1/4 w-32 h-32
+                            opacity-70 pointer-events-none z-0">
+              <div className="w-full h-full rounded-full bg-yellow-300
+                              animate-supernova-pulse">
+              </div>
+            </div>
+          );
+        }
+        
+        // 'solar-wind'
+        if (weather.type === 'windy') {
+           return (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+              {[...Array(5)].map((_, i) => (
+                <div 
+                  key={i} 
+                  className="absolute h-0.5 w-1/2 bg-white rounded-full animate-solar-wind-flow"
+                  style={{
+                    animationDuration: `${Math.random() * 3 + 4}s`, 
+                    animationDelay: `${Math.random() * 6}s`, 
+                    top: `${Math.random() * 90 + 5}%` 
+                  }}
+                >
+                </div>
+              ))}
+            </div>
+           );
+        }
+
+        return null; // Sunny has no overlay
+      }
+      
+      function ForestItem({ item, isEditing, onDragStart, onDragEnd, onClick }) {
+        const { id, type, x, y } = item;
+        
+        const [isClicked, setIsClicked] = useState(false);
+        
+        const isPlant = type === 'plant';
+        const isNpc = type ==='npc'; 
+        
+        const speciesData = isPlant ? PLANT_SPECIES[item.type] || PLANT_SPECIES['productivity'] : null;
+        const species = isPlant ? speciesData.emoji : null;
+        const moodColorClass = isPlant ? MOOD_COLORS[item.lastMood] || MOOD_COLORS['default'] : '';
+        const sizeClass = isPlant ? `text-${['2xl', '3xl', '5xl', '7xl'][item.growth]}` : item.decorClass;
+        
+        const healthStyle = isPlant ? {
+          opacity: item.health / 100,
+          filter: `grayscale(${(100 - item.health) / 100})`,
+        } : { opacity: 1, filter: 'none' };
+        
+        const itemContent = isPlant ? (
+          species[item.growth] 
+        ) : (
+          <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: item.svg }} />
+        );
+        
+        const animationClass = item.isAnimated ? 'animate-sparkle-pulse' : (isNpc ? 'animate-spirit-hover' : '');
+        const shadowClass = isPlant ? `shadow-2xl ${moodColorClass} rounded-full` : '';
+        const isDraggable = isEditing && !isNpc; 
+        
+        const handleClick = () => {
+          if (onClick) {
+            onClick(); 
+          }
+          
+          if (!isEditing && !isPlant && !isNpc) {
+            setIsClicked(true);
+            setTimeout(() => setIsClicked(false), 300);
+          }
+        };
+        
+        const transformStyle = {
+          transform: `translate(-50%, -50%) 
+                      rotate(${item.rotation || 0}deg) 
+                      scale(${item.scale || 1}) 
+                      ${isClicked ? 'scale(1.1)' : ''}`,
+          zIndex: item.zIndex || 10,
+        };
+        
+        return (
+          <div
+            draggable={isDraggable}
+            onDragStart={(e) => isDraggable && onDragStart(e, { id, type })}
+            onDragEnd={onDragEnd}
+            onClick={handleClick} 
+            className={`plant group absolute transition-all duration-300 ${sizeClass} ${
+              isDraggable ? 'cursor-grab active:cursor-grabbing' : (isNpc || !isEditing ? 'cursor-pointer' : '')
+            } ${shadowClass} ${animationClass}`} 
+            style={{
+              left: `${x}%`,
+              top: `${y}%`,
+              ...transformStyle,
+              transition: 'all 0.5s ease',
+              ...healthStyle,
+            }}
+          >
+            {itemContent}
+            
+            {isPlant && (
+              <span className={`absolute -top-10 left-1/2 -translate-x-1/2
+                              w-max max-w-xs p-2 px-3
+                              bg-gray-800 text-white text-sm font-medium
+                              rounded-md shadow-lg
+                              opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100
+                              transition-all duration-200 ease-out
+                              pointer-events-none ${isEditing ? 'hidden' : ''}`}>
+                {item.name}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-gray-800"></div>
+              </span>
+            )}
+            
+            {isNpc && !isEditing && (
+              <span className={`absolute -top-2 left-full -translate-y-full
+                              w-max max-w-xs p-2 px-3 ml-2
+                              bg-white text-gray-800 text-sm font-medium
+                              rounded-lg shadow-lg
+                              opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100
+                              transition-all duration-200 ease-out
+                              pointer-events-none`}>
+                {item.quest ? `Quest: ${item.quest.title}` : 'Ask me for advice!'}
+                <div className="absolute top-full left-0 -translate-y-1/2 -translate-x-1/2 w-0 h-0 border-y-4 border-y-transparent border-r-4 border-r-white"></div>
+              </span>
+            )}
+          </div>
+        );
+      }
+
+
+      function AddHabitModal({ onClose, onAddHabit, prefill, userLevel }) {
+        const [name, setName] = useState(prefill?.name || '');
+        const [type, setType] = useState(prefill?.type || 'health');
+        const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          if (name.trim()) {
+            onAddHabit(name, type);
+          }
+        };
+        
+        const handleGetSuggestion = async () => {
+          setIsLoadingSuggestion(true);
+          const suggestion = await fetchAiSuggestion(type);
+          setName(suggestion); 
+          setIsLoadingSuggestion(false);
+        };
+        
+        const availablePlantTypes = Object.keys(PLANT_SPECIES)
+          .filter(key => userLevel >= PLANT_SPECIES[key].levelRequired);
+
+        return (
+          <ModalBackdrop onClose={onClose}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <h2 className="text-2xl font-bold">Plant a New Habit</h2>
+              <div>
+                <label htmlFor="habit-name" className="block text-sm font-medium text-gray-700">Habit Name</label>
+                <input
+                  type="text" id="habit-name" value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="e.g., Go for a 10 min walk"
+                />
+              </div>
+              <div>
+                <label htmlFor="habit-type" className="block text-sm font-medium text-gray-700">Habit Type</label>
+                <select
+                  id="habit-type" value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                >
+                  {availablePlantTypes.map(key => (
+                    <option key={key} value={key} className="capitalize">
+                      {PLANT_SPECIES[key].emoji[0]} {key}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <button
+                type="button"
+                onClick={handleGetSuggestion}
+                disabled={isLoadingSuggestion}
+                className="w-full flex items-center justify-center py-2 px-3 text-sm font-medium
+                           bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100
+                           disabled:bg-gray-100 disabled:text-gray-400"
+              >
+                {isLoadingSuggestion ? 'Thinking...' : '💡 Get AI Suggestion'}
+              </button>
+              
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={onClose} className="py-2 px-4 bg-gray-200 rounded-lg font-medium hover:bg-gray-300">Cancel</button>
+                <button type="submit" className="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700">Plant Seed</button>
+              </div>
+            </form>
+          </ModalBackdrop>
+        );
+      }
+
+      function AiCheckInModal({ onClose, onCheckIn, isLoading, message }) {
+        const [file, setFile] = useState(null);
+        const [preview, setPreview] = useState(null);
+        const [mood, setMood] = useState('happy'); 
+
+        const handleFileChange = (e) => {
+          const selectedFile = e.target.files[0];
+          if (selectedFile) {
+            setFile(selectedFile);
+            setPreview(URL.createObjectURL(selectedFile));
+          }
+        };
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          if (file) {
+            onCheckIn(file, mood); 
+          }
+        };
+
+        return (
+          <ModalBackdrop onClose={onClose}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <h2 className="text-2xl font-bold">Record Your Habit</h2>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photo Proof</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  required
+                  className="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-indigo-50 file:text-indigo-700
+                    hover:file:bg-indigo-100"
+                />
+                {preview && (
+                  <img src={preview} alt="Preview" className="mt-4 rounded-lg shadow-md max-h-60 w-auto mx-auto" />
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">How did this habit make you feel?</label>
+                <div className="flex justify-center gap-2">
+                  {Object.keys(MOOD_COLORS).filter(k => k !== 'default').map(moodKey => (
+                    <button
+                      key={moodKey}
+                      type="button"
+                      onClick={() => setMood(moodKey)}
+                      className={`text-2xl p-2 rounded-full transition-all ${mood === moodKey ? 'bg-indigo-100 scale-110' : 'opacity-60'}`}
+                      title={moodKey.charAt(0).toUpperCase() + moodKey.slice(1)}
+                    >
+                      {MOOD_EMOJI[moodKey]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {message && (
+                <div className={`p-3 rounded-lg text-center ${message.startsWith('Success') || message.startsWith('LEVEL') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {message}
+                </div>
+              )}
+              
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={onClose} className="py-2 px-4 bg-gray-200 rounded-lg font-medium hover:bg-gray-300" disabled={isLoading}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 disabled:bg-gray-400"
+                  disabled={!file || isLoading}
+                >
+                  {isLoading ? 'Verifying...' : 'Grow My Planet'}
+                </button>
+              </div>
+            </form>
+          </ModalBackdrop>
+        );
+      }
+
+      function HabitDetailsModal({ habit, history, onClose, onDelete }) {
+        const { name, type, growth, health, lastMood, currentStreak, longestStreak } = habit;
+        const species = (PLANT_SPECIES[type] || PLANT_SPECIES['productivity']).emoji;
+        const moodEmoji = MOOD_EMOJI[lastMood] || '';
+        
+        const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+        
+        const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        return (
+          <ModalBackdrop onClose={onClose} wide={true}>
+            <div className="space-y-4">
+              <div className="flex justify-between items-start">
+                <h2 className="text-2xl font-bold">{name}</h2>
+                <span className="text-4xl">{species[growth]}</span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div className="space-y-3">
+                  <p><strong>Type:</strong> <span className="capitalize py-0.5 px-2 bg-gray-100 rounded-full text-sm">{type}</span></p>
+                  
+                  <div>
+                    <p className="font-semibold">Growth Stage: <span className="font-normal">{growth + 1} / {MAX_GROWTH + 1}</span></p>
+                    <div className="flex gap-1.5 mt-1.5">
+                      {Array.from({ length: MAX_GROWTH + 1 }).map((_, index) => (
+                        <div 
+                          key={index}
+                          className={`h-3 flex-1 rounded-full ${index <= growth ? 'bg-green-500' : 'bg-gray-200'}`}
+                        ></div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <p><strong>Health:</strong> {health}%</p>
+                  <p><strong>Last Mood:</strong> <span className="capitalize">{lastMood}</span> {moodEmoji}</p>
+                  
+                  <div className="pt-2 border-t">
+                    <p><strong>Current Streak:</strong> {currentStreak} days 🔥</p>
+                    <p><strong>Longest Streak:</strong> {longestStreak} days 🏆</p>
+                  </div>
+                  
+                </div>
+                
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold border-b pb-1">Check-in Log</h3>
+                  {sortedHistory.length === 0 ? (
+                    <p className="text-sm text-gray-500">No check-ins for this habit yet.</p>
+                  ) : (
+                    <ul className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                      {sortedHistory.map((checkIn, index) => (
+                        <li key={index} className="flex items-center gap-3 bg-gray-50 p-2 rounded-lg">
+                          {checkIn.base64Image ? (
+                            <img
+                              src={`data:image/jpeg;base64,${checkIn.base64Image}`}
+                              className="w-12 h-12 rounded-md object-cover shadow-sm"
+                              alt="Check-in proof"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-md bg-gray-200 flex items-center justify-center text-gray-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <span className="font-medium text-sm">{checkIn.date}</span>
+                            <span className="text-xl ml-2">{MOOD_EMOJI[checkIn.mood] || ''}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-between gap-3 pt-4 border-t">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (isConfirmingDelete) {
+                      onDelete(habit.id);
+                    } else {
+                      setIsConfirmingDelete(true);
+                    }
+                  }}
+                  className={`py-2 px-4 font-semibold rounded-lg shadow transition-all ${
+                    isConfirmingDelete
+                      ? 'bg-red-700 text-white hover:bg-red-800'
+                      : 'bg-red-100 text-red-700 hover:bg-red-200'
+                  }`}
+                  onMouseLeave={() => {
+                    if (isConfirmingDelete) {
+                       setIsConfirmingDelete(false);
+                    }
+                  }}
+                >
+                  {isConfirmingDelete ? 'Confirm Delete?' : 'Delete Habit'}
+                </button>
+                <button 
+                  type="button" 
+                  onClick={onClose} 
+                  className="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </ModalBackdrop>
+        );
+      }
+
+      function ModalBackdrop({ children, onClose, wide = false }) {
+        const [isVisible, setIsVisible] = useState(false);
+
+        useEffect(() => {
+          const timer = setTimeout(() => setIsVisible(true), 10);
+          return () => clearTimeout(timer);
+        }, []);
+
+        const handleClose = () => {
+          setIsVisible(false);
+          setTimeout(onClose, 300); 
+        };
+        
+        return (
+          <div
+            className={`fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4 backdrop-blur-sm
+                      transition-opacity duration-300 ease-out
+                      ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+            onClick={handleClose}
+          >
+            <div
+              className={`bg-white w-full ${wide ? 'max-w-3xl' : 'max-w-md'} p-6 rounded-2xl shadow-xl space-y-4
+                        transition-all duration-300 ease-out animate-modal-pop
+                        ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+              onClick={(e) => e.stopPropagation()} 
+            >
+              {children}
+            </div>
+          </div>
+        );
+      }
+      
+      function StoreModal({ sunlight, userLevel, onBuy, onClose, CoinIcon }) {
+        return (
+          <ModalBackdrop onClose={onClose} wide={true}>
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-center">Space Store</h2>
+              <span className="py-1 px-4 bg-yellow-100 text-yellow-800 text-lg font-bold rounded-full">☀️ {sunlight}</span>
+            </div>
+            
+            <p className="text-gray-600">Spend your Sunlight to personalize your space! New items unlock as you level up.</p>
+            
+            <div className="space-y-4 max-h-80 overflow-y-auto p-2">
+              {storeLevels.map(level => (
+                <div key={level} className="border-t pt-4">
+                  <h3 className="font-semibold text-gray-700 mb-2">Level {level} Items</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {STORE_ITEMS.filter(item => item.levelRequired === level).map(item => {
+                      const isLocked = userLevel < item.levelRequired;
+                      return (
+                        <div 
+                          key={item.id} 
+                          className={`group bg-gray-50 rounded-lg p-4 text-center border relative overflow-hidden
+                                      transition-all duration-300
+                                      hover:shadow-[0_0_40px_10px_rgba(253,224,71,0.3)]
+                                      hover:transform hover:-translate-y-1 hover:rotate-3`}
+                        >
+                          {isLocked && (
+                            <div className="absolute inset-0 bg-gray-200/70 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg z-10">
+                              <span className="text-3xl">🔒</span>
+                            </div>
+                          )}
+                          <div className={`h-12 w-12 mx-auto ${item.isAnimated ? 'animate-sparkle-pulse' : ''}`} dangerouslySetInnerHTML={{ __html: item.svg }} />
+                          <p className="font-semibold mt-2">{item.name}</p>
+                          <button
+                            onClick={() => onBuy(item)}
+                            disabled={sunlight < item.cost || isLocked}
+                            className="mt-2 w-full py-1 px-3 bg-amber-500 text-white font-semibold rounded-lg shadow hover:bg-amber-600 disabled:bg-gray-300 flex items-center justify-center gap-1"
+                          >
+                            <CoinIcon /> {item.cost}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex justify-end mt-4">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700"
+              >
+                Close
+              </button>
+            </div>
+          </ModalBackdrop>
+        );
+      }
+
+      function CalendarModal({ onClose, habits, history }) {
+        return (
+          <ModalBackdrop onClose={onClose} wide={true}>
+            <h2 className="text-2xl font-bold text-center">Your Activity Calendar</h2>
+            <HabitCalendar habits={habits} history={history} />
+            <div className="flex justify-end mt-4">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700"
+              >
+                Close
+              </button>
+            </div>
+          </ModalBackdrop>
+        );
+      }
+
+      function HabitCalendar({ habits, history }) {
+        const [currentDate, setCurrentDate] = useState(new Date());
+        const [selectedDate, setSelectedDate] = useState(null);
+
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth(); 
+        const monthName = currentDate.toLocaleString('default', { month: 'long' });
+
+        const firstDayOfMonth = new Date(year, month, 1).getDay(); 
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        const emptyDays = Array(firstDayOfMonth).fill(null);
+        const calendarDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+        const gridDays = [...emptyDays, ...calendarDays];
+        
+        const getHabitInfo = (habitId) => {
+          return habits.find(h => h.id === habitId);
+        };
+        
+        const todayString = toYYYYMMDD(new Date());
+        
+        const changeMonth = (amount) => {
+          setCurrentDate(prevDate => {
+            const newDate = new Date(prevDate);
+            newDate.setMonth(newDate.getMonth() + amount);
+            return newDate;
+          });
+          setSelectedDate(null); 
+        };
+        
+        const checkInsForSelectedDay = selectedDate 
+          ? history.filter(c => c.date === selectedDate)
+          : [];
+
+        return (
+          <div className="p-2">
+            <div className="flex justify-between items-center mb-4">
+              <button onClick={() => changeMonth(-1)} className="p-2 rounded-full hover:bg-gray-100">&larr;</button>
+              <h3 className="text-xl font-semibold text-center">{monthName} {year}</h3>
+              <button onClick={() => changeMonth(1)} className="p-2 rounded-full hover:bg-gray-100">&rarr;</button>
+            </div>
+            
+            <div className="grid grid-cols-7 gap-1">
+              {daysOfWeek.map(day => (
+                <div key={day} className="text-center font-medium text-xs text-gray-500 uppercase">
+                  {day}
+                </div>
+              ))}
+              
+              {gridDays.map((day, index) => {
+                if (!day) {
+                  return <div key={`empty-${index}`} className="border rounded-lg border-transparent"></div>;
+                }
+                
+                const dayString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const checkInsForDay = history.filter(c => c.date === dayString);
+                const isToday = dayString === todayString;
+                const isSelected = dayString === selectedDate;
+                
+                return (
+                  <div
+                    key={day}
+                    onClick={() => setSelectedDate(dayString)}
+                    className={`border rounded-lg p-1.5 h-20 flex flex-col relative group cursor-pointer ${
+                      isSelected ? 'border-indigo-600 bg-indigo-100' :
+                      isToday ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className={`font-medium text-sm ${
+                      isSelected ? 'text-indigo-700' :
+                      isToday ? 'text-indigo-700' : 'text-gray-800'
+                    }`}>{day}</span>
+            
+                    <div className="flex-grow mt-1 flex flex-wrap gap-1">
+                      {checkInsForDay.map((checkIn, i) => {
+                        const habit = getHabitInfo(checkIn.habitId);
+                        const type = habit ? habit.type : 'default';
+                        const color = HABIT_TYPE_COLORS[type] || HABIT_TYPE_COLORS['default'];
+                        return (
+                          <div
+                            key={i}
+                            className={`w-2 h-2 rounded-full ${color}`}
+                          ></div>
+                        );
+                      })}
+                    </div>
+                    
+                    {checkInsForDay.length > 0 && (
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20
+                                      w-max max-w-xs p-2 px-3
+                                      bg-gray-800 text-white text-sm font-medium
+                                      rounded-md shadow-lg
+                                      opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100
+                                      transition-all duration-200 ease-out
+                                      pointer-events-none">
+                        <span className="font-semibold mb-2 block border-b border-gray-600 pb-1">{dayString}</span>
+                        <ul className="space-y-1.5 text-left">
+                          {checkInsForDay.map((checkIn, i) => {
+                             const habit = getHabitInfo(checkIn.habitId);
+                             const type = habit ? habit.type : 'default';
+                             const color = HABIT_TYPE_COLORS[type] || HABIT_TYPE_COLORS['default'];
+                             const moodEmoji = MOOD_EMOJI[checkIn.mood] || '';
+                             
+                             return (
+                               <li key={i} className="flex items-center">
+                                 <div className={`w-2 h-2 rounded-full ${color} mr-2 flex-shrink-0`}></div>
+                                 <span>{habit ? habit.name : 'Completed Habit'} {moodEmoji}</span>
+                               </li>
+                             );
+                          })}
+                        </ul>
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-gray-800"></div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            {selectedDate && (
+              <div className="mt-4 pt-4 border-t">
+                <h4 className="font-semibold text-lg mb-2">Summary for: {selectedDate}</h4>
+                {checkInsForSelectedDay.length === 0 ? (
+                  <p className="text-gray-500">No habits were completed on this day.</p>
+                ) : (
+                  <ul className="space-y-3 max-h-40 overflow-y-auto pr-2">
+                    {checkInsForSelectedDay.map((checkIn, i) => {
+                      const habit = getHabitInfo(checkIn.habitId);
+                      return (
+                        <li key={i} className="flex items-center gap-3 bg-gray-50 p-2 rounded-lg">
+                          {checkIn.base64Image ? (
+                            <img
+                              src={`data:image/jpeg;base64,${checkIn.base64Image}`}
+                              className="w-12 h-12 rounded-md object-cover shadow-sm"
+                              alt="Check-in proof"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-md bg-gray-200 flex items-center justify-center text-gray-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <span className="font-medium">{habit ? habit.name : 'Completed Habit'}</span>
+                          </div>
+                          <span className="text-2xl">{MOOD_EMOJI[checkIn.mood] || ''}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+            
+          </div>
+        );
+      }
+      
+      function NpcModal({ onClose, quests }) {
+        const [isLoading, setIsLoading] = useState(false);
+        const [advice, setAdvice] = useState(null);
+        
+        const currentQuest = quests[0];
+        
+        const handleGetAdvice = async () => {
+          setIsLoading(true);
+          setAdvice(null);
+          const suggestion = await fetchAiSuggestion('general'); 
+          setAdvice(suggestion);
+          setIsLoading(false);
+        };
+        
+        return (
+          <ModalBackdrop onClose={onClose}>
+            <div className="text-center">
+              <div 
+                className="w-24 h-24 mx-auto animate-spirit-hover"
+                style={{ transform: 'none', left: 0, top: 0 }} 
+                dangerouslySetInnerHTML={{ __html: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50,10 C70,10 90,30 90,50 C90,70 80,80 70,90 C60,100 40,100 30,90 C20,80 10,70 10,50 C10,30 30,10 50,10 Z" fill="#E1F5FE"/><circle cx="40" cy="50" r="5" fill="#0277BD"/><circle cx="60" cy="50" r="5" fill="#0277BD"/><path d="M40,65 Q50,75 60,65" stroke="#0277BD" stroke-width="3" fill="none"/></svg>` }} 
+              />
+              <h2 className="text-2xl font-bold mt-4">Space Spirit</h2>
+              <p className="text-gray-600 mt-2">"Welcome, explorer. Stay consistent and your space will thrive."</p>
+              
+              <div className="mt-6 text-left bg-indigo-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-indigo-800">Your Current Quest:</h3>
+                {currentQuest ? (
+                  <div>
+                    <p className="font-bold text-gray-700">{currentQuest.title}</p>
+                    <p className="text-sm text-gray-600">{currentQuest.description}</p>
+                    <p className="text-sm font-medium text-green-600 mt-1">Reward: {currentQuest.reward.sunlight} ☀️ {currentQuest.reward.xp} XP</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-600">You have completed all available quests!</p>
+                )}
+              </div>
+              
+              {advice && (
+                <div className="mt-4 text-left bg-gray-100 p-4 rounded-lg">
+                  <p className="text-gray-700">The spirit whispers: "Perhaps you could try... <strong>{advice}</strong>"</p>
+                </div>
+              )}
+
+              <div className="flex justify-between gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={handleGetAdvice}
+                  disabled={isLoading}
+                  className="py-2 px-4 bg-blue-100 text-blue-700 font-medium rounded-lg hover:bg-blue-200 disabled:opacity-50"
+                >
+                  {isLoading ? 'Thinking...' : 'Ask for Advice'}
+                </button>
+                <button 
+                  type="button" 
+                  onClick={onClose} 
+                  className="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </ModalBackdrop>
+        );
+      }
+      
+      function DecorationModal({ decor, onClose, onUpdate, onDelete, onBringToFront, onSendToBack }) {
+        const [scale, setScale] = useState(decor.scale || 1);
+        const [rotation, setRotation] = useState(decor.rotation || 0);
+        
+        const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+        
+        useEffect(() => {
+          onUpdate({ scale, rotation });
+        }, [scale, rotation]);
+        
+        return (
+          <ModalBackdrop onClose={onClose}>
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold">Edit Decoration</h2>
+              
+              <div className="flex justify-center items-center h-24 bg-gray-100 rounded-lg p-4">
+                 <div 
+                   className={decor.decorClass}
+                   style={{ 
+                     transform: `rotate(${rotation}deg) scale(${scale})`, 
+                     transition: 'transform 0.2s' 
+                   }} 
+                   dangerouslySetInnerHTML={{ __html: decor.svg }} 
+                 />
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="scale-slider" className="block text-sm font-medium text-gray-700">Size (Scale)</label>
+                  <input
+                    type="range"
+                    id="scale-slider"
+                    min="0.5"
+                    max="2"
+                    step="0.1"
+                    value={scale}
+                    onChange={(e) => setScale(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="text-xs text-gray-500 text-right">{Math.round(scale * 100)}%</div>
+                </div>
+                
+                <div>
+                  <label htmlFor="rotation-slider" className="block text-sm font-medium text-gray-700">Rotation</label>
+                  <input
+                    type="range"
+                    id="rotation-slider"
+                    min="-180"
+                    max="180"
+                    step="5"
+                    value={rotation}
+                    onChange={(e) => setRotation(parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="text-xs text-gray-500 text-right">{rotation}°</div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={onBringToFront}
+                  className="py-2 px-4 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200"
+                >
+                  Bring to Front
+                </button>
+                <button
+                  onClick={onSendToBack}
+                  className="py-2 px-4 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200"
+                >
+                  Send to Back
+                </button>
+              </div>
+              
+              <div className="flex justify-between gap-3 pt-4 border-t">
+                 <button 
+                    type="button" 
+                    onClick={() => {
+                      if (isConfirmingDelete) {
+                        onDelete(decor.id);
+                      } else {
+                        setIsConfirmingDelete(true);
+                      }
+                    }}
+                    className={`py-2 px-4 font-semibold rounded-lg shadow transition-all ${
+                      isConfirmingDelete
+                        ? 'bg-red-700 text-white hover:bg-red-800'
+                        : 'bg-red-100 text-red-700 hover:bg-red-200'
+                    }`}
+                    onMouseLeave={() => {
+                      if (isConfirmingDelete) {
+                         setIsConfirmingDelete(false);
+                      }
+                    }}
+                  >
+                    {isConfirmingDelete ? 'Confirm Delete?' : 'Delete'}
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={onClose} 
+                    className="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700"
+                  >
+                    Done
+                  </button>
+              </div>
+            </div>
+          </ModalBackdrop>
+        );
+      }
+
+      const container = document.getElementById('root');
+      const root = ReactDOM.createRoot(container);
+      root.render(<App />);
+    </script>
+  </body>
+</html>
